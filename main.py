@@ -67,9 +67,9 @@ async def upload_file(file: UploadFile = File(...)):
 
     file_suffix = Path(file.filename).suffix.lower()
 
-    validate_image_file(file_suffix)
+    validate_image_file(file, file_suffix)
 
-    unique_filename = create_unique_filename(file, file_suffix)
+    unique_filename = create_unique_filename(file_suffix)
 
     await read_write_file(file, unique_filename)
 
