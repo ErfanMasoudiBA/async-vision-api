@@ -12,6 +12,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 CHUNK_SIZE = 65536
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".ico"}
 MAX_FILE_SIZE = 5 * 1024 * 1024
+Image.MAX_IMAGE_PIXELS = 200_000_000
 
 
 @app.get("/")
@@ -24,10 +25,8 @@ def health_check():
     return {"status": "ok"}
 
 
-def create_unique_filename(file: UploadFile) -> str:
-    file_extension = Path(file.filename).suffix
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
-    return unique_filename
+def create_unique_filename(file_suffix: str) -> str:
+    return f"{uuid.uuid4()}{file_suffix}"
 
 
 async def read_write_file(file: UploadFile, unique_filename: str) -> None:
@@ -40,13 +39,14 @@ async def read_write_file(file: UploadFile, unique_filename: str) -> None:
             await buffer.write(chunk)
 
 
-def validate_image_file(file: UploadFile) -> None:
-    if file.filename is None:
-        raise HTTPException(status_code=400, detail="missing filename")
-    if file.size is None or file.size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large or size unknown")
+def validate_image_file(file: UploadFile, file_suffix: str) -> None:
 
-    file_suffix = Path(file.filename).suffix.lower()
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File is too large")
+
     if file_suffix not in IMAGE_EXTENSIONS:
         raise HTTPException(
             status_code=415, detail="The file must be in picture format."
@@ -54,13 +54,23 @@ def validate_image_file(file: UploadFile) -> None:
     try:
         with Image.open(file.file) as img:
             img.load()
-    except UnidentifiedImageError:
-        raise HTTPException(status_code=415, detail="The file is not a picture.")
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        raise HTTPException(status_code=415, detail="The file is not a valid picture.")
+    finally:
+        file.file.seek(0)
 
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    validate_image_file(file)
-    unique_filename = create_unique_filename(file)
+    if file.filename is None:
+        raise HTTPException(status_code=400, detail="missing filename")
+
+    file_suffix = Path(file.filename).suffix.lower()
+
+    validate_image_file(file_suffix)
+
+    unique_filename = create_unique_filename(file, file_suffix)
+
     await read_write_file(file, unique_filename)
+
     return {"filename": unique_filename}
