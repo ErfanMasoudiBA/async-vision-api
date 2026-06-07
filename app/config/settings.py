@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pathlib import Path
 
 from PIL import Image
@@ -12,6 +13,10 @@ class Settings(BaseSettings):
     MAX_IMAGE_PIXELS: int = 200_000_000
 
 
-settings = Settings()
-settings.UPLOAD_DIR.mkdir(exist_ok=True)
-Image.MAX_IMAGE_PIXELS = settings.MAX_FILE_SIZE
+@lru_cache
+def get_settings() -> Settings:
+
+    settings = Settings()
+    settings.UPLOAD_DIR.mkdir(exist_ok=True)
+    Image.MAX_IMAGE_PIXELS = settings.MAX_IMAGE_PIXELS
+    return settings
