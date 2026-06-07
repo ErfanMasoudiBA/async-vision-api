@@ -14,7 +14,7 @@ async def upload_file(
 ):
 
     if file.filename is None:
-        raise HTTPException(status_code=400, detail="missing filename")
+        raise HTTPException(status_code=415, detail="missing filename")
 
     file_suffix = Path(file.filename).suffix.lower()
 

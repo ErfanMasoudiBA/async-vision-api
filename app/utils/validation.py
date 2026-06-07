@@ -1,3 +1,5 @@
+import warnings
+
 from app.config.settings import Settings
 from fastapi import HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
@@ -16,9 +18,16 @@ def validate_image_file(file: UploadFile, file_suffix: str, cfg: Settings) -> No
             status_code=415, detail="The file must be in picture format."
         )
     try:
-        with Image.open(file.file) as img:
-            img.load()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(file.file) as img:
+                img.load()
+    except (
+        UnidentifiedImageError,
+        OSError,
+        Image.DecompressionBombError,
+        Image.DecompressionBombWarning,
+    ):
         raise HTTPException(status_code=415, detail="The file is not a valid picture.")
     finally:
         file.file.seek(0)

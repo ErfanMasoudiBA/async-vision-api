@@ -1,11 +1,13 @@
 from app.api.v1.main_router import api_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.config.app_lifespan import app_lifespan
 
 app = FastAPI(
     title="Async Vision API",
     description="An asynchronous REST API for scalable computer vision inference using FastAPI, Celery, Redis, and Hugging Face.",
     version="1.0.0",
+    lifespan=app_lifespan,
 )
 
 app.add_middleware(
