@@ -2,17 +2,11 @@ import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from app.config.settings import Settings, settings
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
 
 app = FastAPI()
-
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
-CHUNK_SIZE = 65536
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".ico"}
-MAX_FILE_SIZE = 5 * 1024 * 1024
-Image.MAX_IMAGE_PIXELS = 200_000_000
 
 
 @app.get("/")
@@ -29,25 +23,33 @@ def create_unique_filename(file_suffix: str) -> str:
     return f"{uuid.uuid4()}{file_suffix}"
 
 
-async def read_write_file(file: UploadFile, unique_filename: str) -> None:
-    target = UPLOAD_DIR / unique_filename
+def get_settings():
+    return settings
+
+
+async def read_write_file(
+    file: UploadFile, unique_filename: str, cfg: Settings = Depends(get_settings)
+) -> None:
+    target = cfg.UPLOAD_DIR / unique_filename
     async with aiofiles.open(target, mode="wb") as buffer:
         while True:
-            chunk = await file.read(CHUNK_SIZE)
+            chunk = await file.read(cfg.CHUNK_SIZE)
             if not chunk:
                 break
             await buffer.write(chunk)
 
 
-def validate_image_file(file: UploadFile, file_suffix: str) -> None:
+def validate_image_file(
+    file: UploadFile, file_suffix: str, cfg: Settings = Depends(get_settings)
+) -> None:
 
     file.file.seek(0, 2)
     size = file.file.tell()
     file.file.seek(0)
-    if size > MAX_FILE_SIZE:
+    if size > cfg.MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File is too large")
 
-    if file_suffix not in IMAGE_EXTENSIONS:
+    if file_suffix not in cfg.IMAGE_EXTENSIONS:
         raise HTTPException(
             status_code=415, detail="The file must be in picture format."
         )
