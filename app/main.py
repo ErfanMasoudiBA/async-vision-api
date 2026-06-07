@@ -1,54 +1,19 @@
-import uuid
-from pathlib import Path
+from app.api.v1.main_router import api_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-import aiofiles
-from app.config.settings import Settings, get_settings
-from app.utils.validation import validate_image_file
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+app = FastAPI(
+    title="Async Vision API",
+    description="An asynchronous REST API for scalable computer vision inference using FastAPI, Celery, Redis, and Hugging Face.",
+    version="1.0.0",
+)
 
-app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-@app.get("/")
-def read_root():
-    return {"message": "Vision API is running"}
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
-
-def create_unique_filename(file_suffix: str) -> str:
-    return f"{uuid.uuid4()}{file_suffix}"
-
-
-async def read_write_file(
-    file: UploadFile, unique_filename: str, cfg: Settings
-) -> None:
-    target = cfg.UPLOAD_DIR / unique_filename
-    async with aiofiles.open(target, mode="wb") as buffer:
-        while True:
-            chunk = await file.read(cfg.CHUNK_SIZE)
-            if not chunk:
-                break
-            await buffer.write(chunk)
-
-
-@app.post("/upload")
-async def upload_file(
-    file: UploadFile = File(...), cfg: Settings = Depends(get_settings)
-):
-
-    if file.filename is None:
-        raise HTTPException(status_code=400, detail="missing filename")
-
-    file_suffix = Path(file.filename).suffix.lower()
-
-    validate_image_file(file, file_suffix, cfg)
-
-    unique_filename = create_unique_filename(file_suffix)
-
-    await read_write_file(file, unique_filename, cfg)
-
-    return {"filename": unique_filename}
+app.include_router(api_router, prefix="/api/v1")
