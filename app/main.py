@@ -3,7 +3,7 @@ from pathlib import Path
 
 import aiofiles
 from app.config.settings import Settings, get_settings
-from app.validation.validate_file import validate_image_file
+from app.utils.validation import validate_image_file
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 
 app = FastAPI()
