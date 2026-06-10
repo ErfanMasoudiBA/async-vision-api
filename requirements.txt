@@ -1,0 +1,8 @@
+redis
+celery
+uvicorn
+fastapi
+pydantic_settings
+aiofiles
+pillow
+python-multipart
