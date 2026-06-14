@@ -1,8 +1,14 @@
 from celery import Celery
 
+from app.config.settings import get_settings
+
+settings = get_settings()
+
 app = Celery(
     "worker",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/1",
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
     include=["app.services.tasks"],
 )
+
+app.conf.task_track_started = True
