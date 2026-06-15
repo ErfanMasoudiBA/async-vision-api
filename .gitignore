@@ -6,3 +6,13 @@ commits.txt
 # git log --pretty=format:"%h | %ad | %an%n%B%n----------------------------------------" --date=short > commits.txt
 
 .env
+
+
+.env
+.git
+.gitignore
+*.pyc
+env/
+.idea/
+.vscode/
+.env.docker
