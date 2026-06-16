@@ -6,3 +6,5 @@ pydantic_settings
 aiofiles
 pillow
 python-multipart
+transformers
+torch
